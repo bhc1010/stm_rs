@@ -3,6 +3,19 @@
 version = 3
 
 [[package]]
+name = "STMController"
+version = "0.1.0"
+dependencies = [
+ "iced",
+ "iced_audio",
+ "iced_aw",
+ "iced_core",
+ "iced_native",
+ "iced_style",
+ "iced_wgpu",
+]
+
+[[package]]
 name = "ab_glyph"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1089,15 +1102,6 @@ dependencies = [
  "iced_core",
  "once_cell",
  "palette",
-]
-
-[[package]]
-name = "iced_test"
-version = "0.1.0"
-dependencies = [
- "iced",
- "iced_audio",
- "iced_aw",
 ]
 
 [[package]]
