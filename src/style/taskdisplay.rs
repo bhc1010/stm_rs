@@ -14,22 +14,6 @@ pub struct Appearance {
     pub text_color: Color,
 }
 
-// impl std::default::Default for Appearance {
-//     fn default() -> Self {
-//         Self {
-//             background: Background::Color(Color::from_rgba(
-//                 255. / 255.,
-//                 124. / 255.,
-//                 226. / 255.,
-//                 0.1,
-//             )),
-//             bar: Background::Color(Color::from_rgb(255. / 255., 124. / 255., 226. / 255.)),
-//             border_radius: 0.0,
-//             text_color: Color::WHITE,
-//         }
-//     }
-// }
-
 /// A set of rules that dictate the style of a progress bar.
 pub trait StyleSheet {
     /// The supported style of the [`StyleSheet`].
@@ -39,45 +23,45 @@ pub trait StyleSheet {
     fn appearance(&self, style: &Self::Style) -> Appearance;
 }
 
-pub enum TaskStyles {
+pub enum TaskDisplayStyles {
     Waiting,
     Running,
-    Finished,
-    Error,
+    Completed,
+    Failed,
 }
 
-impl Default for TaskStyles {
+impl Default for TaskDisplayStyles {
     fn default() -> Self {
-        TaskStyles::Waiting
+        TaskDisplayStyles::Waiting
     }
 }
 
 impl StyleSheet for Theme {
-    type Style = TaskStyles;
+    type Style = TaskDisplayStyles;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
         let palette = self.extended_palette();
 
         match style {
-            TaskStyles::Waiting => Appearance {
+            TaskDisplayStyles::Waiting => Appearance {
                 background: palette.background.weak.color.into(),
                 bar: palette.background.strong.color.into(),
                 border_radius: 0.0,
                 text_color: Color::BLACK,
             },
-            TaskStyles::Running => Appearance {
+            TaskDisplayStyles::Running => Appearance {
                 background: palette.primary.weak.color.into(),
                 bar: palette.primary.strong.color.into(),
                 border_radius: 0.0,
                 text_color: Color::BLACK,
             },
-            TaskStyles::Finished => Appearance {
+            TaskDisplayStyles::Completed => Appearance {
                 background: palette.success.weak.color.into(),
                 bar: palette.success.strong.color.into(),
                 border_radius: 0.0,
                 text_color: Color::BLACK,
             },
-            TaskStyles::Error => Appearance {
+            TaskDisplayStyles::Failed => Appearance {
                 background: palette.danger.weak.color.into(),
                 bar: palette.danger.strong.color.into(),
                 border_radius: 0.0,

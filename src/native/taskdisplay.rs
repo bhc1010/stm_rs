@@ -5,11 +5,11 @@ use iced_native::renderer;
 use iced_native::widget::{tree::Tree, Widget};
 use iced_native::{Color, Element, Length, Padding, Point, Rectangle};
 
-use crate::style::task::StyleSheet;
+use crate::style::taskdisplay::StyleSheet;
 
 use std::ops::RangeInclusive;
 
-pub struct Task<'a, Message, Renderer>
+pub struct TaskDisplay<'a, Message, Renderer>
 where
     Renderer: renderer::Renderer,
     Renderer::Theme: StyleSheet,
@@ -24,18 +24,18 @@ where
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer> Task<'a, Message, Renderer>
+impl<'a, Message, Renderer> TaskDisplay<'a, Message, Renderer>
 where
     Renderer: renderer::Renderer,
     Renderer::Theme: StyleSheet,
 {
     pub const DEFAULT_HEIGHT: f32 = 40.0;
 
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>, value: f32) -> Self {
-        Task {
+    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+        TaskDisplay {
             content: content.into(),
-            value: value,
             range: 0.0..=100.0,
+            value: 0.0,
             width: Length::Fill,
             height: Some(Length::Shrink),
             padding: Padding::new(15.0),
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Task<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for TaskDisplay<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + renderer::Renderer,
@@ -106,7 +106,7 @@ where
 
         let style = theme.appearance(&self.style);
 
-        /// Draw task background quad
+        // Draw task background quad
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle { ..bounds },
@@ -117,7 +117,7 @@ where
             style.background,
         );
 
-        /// Draw task progress quad
+        // Draw task progress quad
         if active_progress_width > 0.0 {
             renderer.fill_quad(
                 renderer::Quad {
@@ -133,7 +133,7 @@ where
             );
         }
 
-        /// Draw content on top of task bar
+        // Draw content on top of task bar
         self.content.as_widget().draw(
             &_state.children[0],
             renderer,
@@ -148,18 +148,19 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Task<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<TaskDisplay<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + renderer::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn from(task: Task<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(task: TaskDisplay<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(task)
     }
 }
 
-/// Computes the layout of a [`Task`].
+/// Computes the layout of a [`TaskDisplay`].
 pub fn layout<Renderer>(
     renderer: &Renderer,
     limits: &layout::Limits,

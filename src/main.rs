@@ -1,18 +1,23 @@
 mod native;
 mod style;
+mod task;
+mod icons;
 
-use iced::subscription::run;
+use std::cmp::min;
+
+use iced::{theme, executor, window};
 use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, pick_list, row, text, text_input,
+    button, column, container, horizontal_rule, horizontal_space, pick_list, row, text, text_input, scrollable,
     vertical_rule, vertical_space, Button, PickList, Text, TextInput,
 };
-use iced::{alignment, color, theme, Theme};
-use iced::{Alignment, Element, Font, Length, Renderer, Sandbox, Settings};
+use iced::{Alignment, Element, Length, Renderer, Application, Settings, Command, Theme};
 use iced_audio::{Normal, NormalParam, XYPad};
 use iced_aw::native::NumberInput;
 use iced_aw::style::NumberInputStyles;
-use native::task::Task;
-use style::task::TaskStyles;
+
+use style::toolbartheme::ToolBarTheme;
+use task::{Task, TaskMessage, TaskState, TaskList};
+use icons::*;
 
 fn main() -> iced::Result {
     R9Control::run(Settings {
@@ -36,6 +41,7 @@ struct R9Control {
     total_images: u16,
     time_to_finish: f64,
     name: String,
+    tasklist: TaskList
 }
 
 #[derive(Debug, Clone)]
@@ -55,36 +61,95 @@ enum Message {
     PlayPressed,
     PausePressed,
     StopPressed,
+    MenuPressed,
+    ImagesButtonPressed,
+    GraphButtonPressed,
+    SettingsButtonPressed,
+    TaskMessage(TaskMessage),
+    TaskRunning(usize),
+    TaskCompleted(usize),
+    TaskFailed(usize),
 }
 
-impl Sandbox for R9Control {
+impl Application for R9Control {
+    type Executor = executor::Default;
+    type Flags = ();
     type Message = Message;
+    type Theme = Theme;
 
-    fn new() -> Self {
-        R9Control::default()
+    fn new(_flags: ()) -> (Self, Command<Self::Message>) {
+        (
+            R9Control::default(),
+            Command::none()
+        )
     }
 
     fn title(&self) -> String {
         String::from("STM External Controller")
     }
 
-    fn update(&mut self, msg: Message) {}
+    fn update(&mut self, msg: Message) -> Command<Self::Message> {
+        match msg {
+            Message::AddToQueue => {
+                let id = self.tasklist.tasks.len();
+                self.tasklist.tasks.push(Task::new(self.name.clone(), id));
+                if self.tasklist.current_task.is_none(){
+                    self.tasklist.current_task = Some(0);
+                }
+                Command::none()
+            },
+            Message::TaskRunning(idx) => {
+                self.tasklist.tasks[idx].state(TaskState::Running);
+                Command::none()
+            },
+            Message::PlayPressed => {
+                self.tasklist.current_task.is_some().then(|| {
+                    let id = self.tasklist.current_task.unwrap();
+                    // send async command to Julia to run the task
+                    if self.tasklist.tasks[id].is_idle() {
+                        self.tasklist.tasks[id].state(TaskState::Running);
+                    }
+                });
+                Command::none()
+            },
+            Message::StopPressed => {
+                self.tasklist.current_task.is_some().then(|| {
+                    let id = self.tasklist.current_task.unwrap();
+                    // send async command to Julia to run the task
+                    self.tasklist.tasks[id].state(TaskState::Failed);
+                    self.tasklist.current_task = Some(min(id + 1, self.tasklist.tasks.len() - 1));
+                });
+                Command::none()
+            },
+            Message::LinesChanged(lines) => {
+                self.lines = Some(lines);
+                Command::none()
+            },
+            Message::SizeChanged(size) => {
+                self.size = size;
+                Command::none()
+            }
+            _ => {
+                Command::none()
+            }
+        }
+    }
 
     fn view(&self) -> Element<Message> {
         let toolbar = container(
             row![
                 horizontal_space(2),
-                menu_icon(),
-                images_icon(),
-                graph_icon(),
+                button(menu_icon()).on_press(Message::MenuPressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
+                button(images_icon()).on_press(Message::ImagesButtonPressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
+                button(graph_icon()).on_press(Message::GraphButtonPressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
                 horizontal_space(Length::Fill),
                 row![
-                    button(play_icon()).on_press(Message::PlayPressed),
-                    button(pause_icon()).on_press(Message::PausePressed),
-                    button(stop_icon()).on_press(Message::StopPressed),
+                    button(play_icon()).on_press(Message::PlayPressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
+                    button(pause_icon()).on_press(Message::PausePressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
+                    button(stop_icon()).on_press(Message::StopPressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
                 ],
                 horizontal_space(Length::Fill),
-                gear_icon(),
+                button(gear_icon()).on_press(Message::SettingsButtonPressed).style(theme::Button::Custom(Box::from(ToolBarTheme))),
                 horizontal_space(2)
             ]
             .spacing(20)
@@ -164,10 +229,13 @@ impl Sandbox for R9Control {
             NumberInput::new(self.step_voltage, 10.0, Message::StepVoltageChanged)
                 .style(NumberInputStyles::Default);
 
-        let name: TextInput<'static, Message, Renderer> =
-            text_input("Choose an alias for the image set...", &self.name, Message::NameChanged)
-                .size(25)
-                .width(Length::Fill);
+        let name: TextInput<'static, Message, Renderer> = text_input(
+            "Choose an alias for the image set...",
+            &self.name,
+            Message::NameChanged,
+        )
+        .size(20)
+        .width(Length::Fill);
 
         let add_to_queue_button: Button<'static, Message, Renderer> = button("Add to queue")
             .width(Length::Fill)
@@ -210,58 +278,18 @@ impl Sandbox for R9Control {
         ]
         .spacing(spacing);
 
-        let finished_task = Task::new(
-            row![
-                finished_icon(),
-                horizontal_space(Length::Fill),
-                text("TaS2 2.5V - 2.9V, 100nm").size(20),
-                horizontal_space(Length::Fill),
-                three_dots_vertical_icon()
-            ]
-            .align_items(Alignment::Center),
-            100.0
+        let tasks: Element<_> = column(
+            self.tasklist.tasks
+                .iter()
+                .enumerate()
+                .map(|(_, task)| {
+                    task.view()
+                        .map(move |message| Message::TaskMessage(message))
+                })
+                .collect(),
         )
-        .style(TaskStyles::Finished);
-
-        let error_task = Task::new(
-            row![
-                error_icon(),
-                horizontal_space(Length::Fill),
-                text("TaS2 2.5V - 2.9V, 50nm").size(20),
-                horizontal_space(Length::Fill),
-                three_dots_vertical_icon()
-            ]
-            .align_items(Alignment::Center),
-            23.0
-        )
-        .style(TaskStyles::Error);
-
-        let running_task = Task::new(
-            row![
-                running_icon(),
-                horizontal_space(Length::Fill),
-                text("TaS2 2.5V - 2.9V, 50nm").size(20),
-                horizontal_space(Length::Fill),
-                three_dots_vertical_icon()
-            ]
-            .align_items(Alignment::Center),
-            67.0
-        )
-        .style(TaskStyles::Running);
-
-        let waiting_task = Task::new(
-            row![
-                circle_icon(),
-                horizontal_space(Length::Fill),
-                text("TaS2 2.5V - 2.9V, 10nm").size(20),
-                horizontal_space(Length::Fill),
-                three_dots_vertical_icon()
-            ]
-            .align_items(Alignment::Center),
-            0.0
-        )
-        .style(TaskStyles::Waiting);
-
+        .spacing(10)
+        .into();
 
         let content = column![
             toolbar,
@@ -283,22 +311,11 @@ impl Sandbox for R9Control {
                 )
                 .max_width(400),
                 vertical_rule(20),
-                container(
-                    column![
-                        finished_task,
-                        error_task,
-                        running_task,
-                        waiting_task,
-                        vertical_space(Length::Fill),
-                    ]
-                    .spacing(10)
-                    .align_items(Alignment::Center)
-                )
-                .padding(10),
+                scrollable(container(tasks).padding(10)),
             ]
             .spacing(20)
         ]
-        .align_items(Alignment::Center)
+        .align_items(Alignment::Start)
         .spacing(20);
 
         container(content).padding(20).into()
@@ -311,82 +328,4 @@ enum LinesOptions {}
 
 impl LinesOptions {
     const ALL: [u32; 10] = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-}
-
-// Fonts
-const ICONS: Font = Font::External {
-    name: "Icons",
-    bytes: include_bytes!("../fonts/icomoon.ttf"),
-};
-
-fn icon(unicode: char, size: f32) -> Text<'static> {
-    text(unicode.to_string())
-        .font(ICONS)
-        .width(size)
-        .horizontal_alignment(alignment::Horizontal::Center)
-        .size(size)
-}
-
-const DEFAULT_ICON_SIZE: f32 = 25.0;
-
-fn play_icon() -> Text<'static> {
-    icon('\u{e918}', 32.0)
-}
-
-fn pause_icon() -> Text<'static> {
-    icon('\u{e919}', 32.0)
-}
-
-fn stop_icon() -> Text<'static> {
-    icon('\u{e90f}', 32.0)
-}
-
-fn finished_icon() -> Text<'static> {
-    icon('\u{e904}', 32.0)
-}
-
-fn error_icon() -> Text<'static> {
-    icon('\u{e906}', 32.0)
-}
-
-fn running_icon() -> Text<'static> {
-    icon('\u{e91d}', DEFAULT_ICON_SIZE)
-}
-
-fn circle_icon() -> Text<'static> {
-    icon('\u{e90a}', 32.0)
-}
-
-fn menu_icon() -> Text<'static> {
-    icon('\u{e90d}', DEFAULT_ICON_SIZE)
-}
-
-fn images_icon() -> Text<'static> {
-    icon('\u{e91c}', DEFAULT_ICON_SIZE)
-}
-
-fn graph_icon() -> Text<'static> {
-    icon('\u{e91f}', DEFAULT_ICON_SIZE)
-}
-
-fn gear_icon() -> Text<'static> {
-    icon('\u{e920}', DEFAULT_ICON_SIZE)
-}
-
-fn three_dots_vertical_icon() -> Text<'static> {
-    icon('\u{e90c}', DEFAULT_ICON_SIZE)
-}
-
-struct ToolBarTheme;
-
-impl container::StyleSheet for ToolBarTheme {
-    type Style = Theme;
-
-    fn appearance(&self, _: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: color!(94, 124, 226, 0.05).into(),
-            border_radius: 20.0,
-            ..Default::default()
-        }
-    }
 }
