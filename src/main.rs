@@ -5,6 +5,7 @@ mod style;
 mod task;
 mod vector2;
 
+use iced_native::Widget;
 use itertools_num::linspace;
 
 use iced::keyboard;
@@ -18,16 +19,18 @@ use iced::widget::{
     button, column, container, horizontal_rule, horizontal_space, pick_list, row, scrollable, text,
     text_input, vertical_rule, vertical_space, Button, PickList, Text, TextInput,
 };
-use iced::{executor, theme, Color};
+use iced::{executor, theme};
 use iced::{
     Alignment, Application, Command, Element, Length, Renderer, Settings, Subscription, Theme,
 };
-use iced_graphics::widget::canvas::{Cache, Canvas, Cursor, Frame, Geometry, Path, Program};
+use iced_graphics::widget::canvas::Canvas;
 
 use icons::*;
 use native::scientificspinbox::{Bounds, ExponentialNumber, ScientificSpinBox};
+use native::image_plot::Plot;
 use style::toolbartheme::ToolBarTheme;
 use task::{Task, TaskList, TaskMessage, TaskState};
+use vector2::Vector2;
 
 fn main() -> iced::Result {
     // std::env::set_var("RUST_BACKTRACE", "1");
@@ -74,7 +77,7 @@ impl Default for R9Control {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ScanAreaChanged(f64, f64),
+    ScanAreaChanged(Vector2<f64>),
     LinesChanged(u32),
     SizeChanged(ExponentialNumber),
     XOffsetChanged(ExponentialNumber),
@@ -312,7 +315,7 @@ impl Application for R9Control {
         .padding(8)
         .style(theme::Container::Custom(Box::from(ToolBarTheme)));
 
-        let scan_area = Canvas::new(Plot { cache: None })
+        let scan_area = Canvas::new(Plot::<Message>::new())
             .width(Length::Fill)
             .height(Length::Fill);
 
@@ -500,9 +503,13 @@ impl Application for R9Control {
                 container(scan_area).max_width(1000),
                 container(
                     column![
-                        scan_area_params,
-                        horizontal_rule(20),
-                        voltage_params,
+                        scrollable(
+                            column![
+                                scan_area_params,
+                                horizontal_rule(20),
+                                voltage_params
+                            ]
+                        ),
                         vertical_space(Length::Fill),
                         name,
                         vertical_space(10),
@@ -556,28 +563,4 @@ enum LinesOptions {}
 
 impl LinesOptions {
     const ALL: [u32; 10] = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-}
-
-struct Plot {
-    cache: Option<Cache>,
-}
-
-impl Program<Message> for Plot {
-    type State = ();
-
-    fn draw(
-        &self,
-        state: &Self::State,
-        theme: &iced_native::Theme,
-        bounds: iced::Rectangle,
-        cursor: Cursor,
-    ) -> Vec<Geometry> {
-        let mut frame = Frame::new(bounds.size());
-
-        let circle = Path::circle(frame.center(), 10.0);
-
-        frame.fill(&circle, Color::BLACK);
-
-        vec![frame.into_geometry()]
-    }
 }
