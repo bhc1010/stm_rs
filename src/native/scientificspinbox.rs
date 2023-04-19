@@ -4,20 +4,18 @@ use num_traits::clamp;
 use crate::native::scientific_text_input::{cursor, value::Value, ScientificTextInput, State};
 
 use iced_native::{
-    alignment::{Horizontal, Vertical},
     event, keyboard,
     layout::{Limits, Node},
-    mouse, renderer,
+    mouse,
     widget::{
         container, text,
         tree::{self, Tree},
         Column, Container, Operation, Row, Text,
     },
-    Alignment, Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Point,
+    Alignment, Clipboard, Element, Event, Layout, Length, Padding, Point,
     Rectangle, Shell, Size, Widget,
 };
 
-use iced_aw::graphics::icons::Icon;
 use std::str::FromStr;
 
 use crate::style::scientificspinbox;
@@ -702,18 +700,7 @@ where
     ) {
         let mut children = layout.children();
         let content_layout = children.next().expect("fail to get content layout");
-        let mut mod_children = children
-            .next()
-            .expect("fail to get modifiers layout")
-            .children();
-        let inc_bounds = mod_children
-            .next()
-            .expect("fail to get increase mod layout")
-            .bounds();
-        let dec_bounds = mod_children
-            .next()
-            .expect("fail to get decreate mod layout")
-            .bounds();
+
         self.content.draw(
             &state.children[0],
             renderer,
@@ -722,78 +709,6 @@ where
             cursor_position,
             None,
         );
-        let is_decrease_disabled = self.value.to_f64() <= self.bounds.lower.to_f64()
-            || self.bounds.lower.to_f64() == self.bounds.upper.to_f64();
-        let is_increase_disabled = self.value.to_f64() >= self.bounds.upper.to_f64()
-            || self.bounds.lower.to_f64() == self.bounds.upper.to_f64();
-
-        // let decrease_btn_style = if is_decrease_disabled {
-        //     theme.disabled(self.style)
-        // } else if state.state.downcast_ref::<ModifierState>().decrease_pressed {
-        //     theme.pressed(self.style)
-        // } else {
-        //     theme.active(self.style)
-        // };
-
-        // let increase_btn_style = if is_increase_disabled {
-        //     theme.disabled(self.style)
-        // } else if state.state.downcast_ref::<ModifierState>().increase_pressed {
-        //     theme.pressed(self.style)
-        // } else {
-        //     theme.active(self.style)
-        // };
-
-        // decrease button section
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: dec_bounds,
-                border_radius: (3.0).into(),
-                border_width: 0.,
-                border_color: Color::TRANSPARENT,
-            },
-            Background::Color(Color::TRANSPARENT),
-        );
-
-        let mut buffer = [0; 4];
-
-        renderer.fill_text(iced_native::text::Text {
-            content: char::from(Icon::CaretDownFill).encode_utf8(&mut buffer),
-            bounds: Rectangle {
-                x: dec_bounds.center_x(),
-                y: dec_bounds.center_y(),
-                ..dec_bounds
-            },
-            size: dec_bounds.height,
-            color: Color::BLACK,
-            font: crate::icons::ICONS,
-            horizontal_alignment: Horizontal::Center,
-            vertical_alignment: Vertical::Center,
-        });
-
-        // increase button section
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: inc_bounds,
-                border_radius: (3.0).into(),
-                border_width: 0.,
-                border_color: Color::TRANSPARENT,
-            },
-            Background::Color(Color::TRANSPARENT),
-        );
-
-        renderer.fill_text(iced_native::text::Text {
-            content: char::from(Icon::CaretUpFill).encode_utf8(&mut buffer),
-            bounds: Rectangle {
-                x: inc_bounds.center_x(),
-                y: inc_bounds.center_y(),
-                ..inc_bounds
-            },
-            size: inc_bounds.height,
-            color: Color::BLACK,
-            font: crate::icons::ICONS,
-            horizontal_alignment: Horizontal::Center,
-            vertical_alignment: Vertical::Center,
-        });
     }
 }
 
