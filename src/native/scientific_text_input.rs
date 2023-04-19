@@ -2,7 +2,6 @@
 //!
 //! A [`ScientificTextInput`] has some local [`State`].
 
-pub mod editor;
 pub mod value;
 
 pub mod cursor;
