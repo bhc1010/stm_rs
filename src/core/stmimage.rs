@@ -1,6 +1,6 @@
 use crate::core::vector2::Vector2;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct STMImage {
     lines: u32,
     size: f64,
@@ -36,7 +36,7 @@ impl STMImage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct STS {
     sts_type: STSType,
     start_voltage: f64,
@@ -44,7 +44,7 @@ pub struct STS {
     step_voltage: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum STSType {
     Point(Vector2<f64>),
     Line(Vec<Vector2<f64>>),

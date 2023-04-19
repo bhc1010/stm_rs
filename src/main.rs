@@ -1,4 +1,5 @@
 mod core;
+mod core_async;
 mod native;
 mod style;
 
@@ -21,6 +22,7 @@ use crate::core::{
     stmimage::STMImage,
     task::{Task, TaskList, TaskMessage, TaskState},
     vector2::Vector2,
+    jlcontext::JuliaContext
 };
 use native::image_plot::Plot;
 use native::scientificspinbox::{Bounds, ExponentialNumber, ScientificSpinBox};
@@ -28,12 +30,14 @@ use style::toolbartheme::ToolBarTheme;
 
 use itertools_num::linspace;
 use std::cmp::min;
+use crossbeam_channel;
 
 fn main() -> iced::Result {
-    // std::env::set_var("RUST_BACKTRACE", "1");
+
     R9Control::run(Settings {
         ..Settings::default()
     })
+
 }
 
 struct R9Control {
@@ -42,7 +46,7 @@ struct R9Control {
     x_offset: ExponentialNumber,
     y_offset: ExponentialNumber,
     line_time: ExponentialNumber,
-    scan_speed: ExponentialNumber,
+    // scan_speed: ExponentialNumber,
     start_voltage: ExponentialNumber,
     stop_voltage: ExponentialNumber,
     step_voltage: ExponentialNumber,
@@ -50,17 +54,22 @@ struct R9Control {
     time_to_finish: String,
     name: String,
     tasklist: TaskList<STMImage>,
+    jlcontext: JuliaContext
 }
 
 impl Default for R9Control {
     fn default() -> Self {
+
+        let jlcontext = JuliaContext::default();
+        jlcontext.load::<STMImage>();
+
         Self {
             lines: None,
             size: ExponentialNumber::new(50.0, -9),
             x_offset: ExponentialNumber::new(0.0, -9),
             y_offset: ExponentialNumber::new(0.0, -9),
             line_time: ExponentialNumber::new(0.0, 0),
-            scan_speed: ExponentialNumber::new(0.0, -9),
+            // scan_speed: ExponentialNumber::new(0.0, -9),
             start_voltage: ExponentialNumber::new(0.0, 0),
             stop_voltage: ExponentialNumber::new(0.0, 0),
             step_voltage: ExponentialNumber::new(0.0, 0),
@@ -68,6 +77,7 @@ impl Default for R9Control {
             time_to_finish: String::from(""),
             name: String::from(""),
             tasklist: TaskList::default(),
+            jlcontext
         }
     }
 }
@@ -80,7 +90,7 @@ enum Message {
     XOffsetChanged(ExponentialNumber),
     YOffsetChanged(ExponentialNumber),
     LineTimeChanged(ExponentialNumber),
-    ScanSpeedChanged(ExponentialNumber),
+    // ScanSpeedChanged(ExponentialNumber),
     StartVoltageChanged(ExponentialNumber),
     StopVoltageChanged(ExponentialNumber),
     StepVoltageChanged(ExponentialNumber),
@@ -157,6 +167,14 @@ impl Application for R9Control {
                     if self.tasklist.tasks[id].is_idle() {
                         self.tasklist.tasks[id].state(TaskState::Running);
                         // send async command to Julia to run the task
+                        self.jlcontext.receiver = {
+                            let (sender, receiver) = crossbeam_channel::bounded(1);
+                            self.jlcontext.julia.try_task(self.tasklist.tasks[id].content()[0].clone(), sender).unwrap();
+                            Some(receiver)
+                        };
+
+                        let result = self.jlcontext.receiver.as_ref().unwrap().recv().unwrap().unwrap();
+                        println!("{:?}", result);
                     }
                 });
                 Command::none()
@@ -201,10 +219,10 @@ impl Application for R9Control {
                 );
                 Command::none()
             }
-            Message::ScanSpeedChanged(scan_speed) => {
-                self.scan_speed = scan_speed;
-                Command::none()
-            }
+            // Message::ScanSpeedChanged(scan_speed) => {
+            //     self.scan_speed = scan_speed;
+            //     Command::none()
+            // }
             Message::StartVoltageChanged(start_voltage) => {
                 self.start_voltage = start_voltage;
                 self.total_images = calculate_total_images(
@@ -522,6 +540,13 @@ impl Application for R9Control {
         .spacing(20);
 
         container(content).padding(20).into()
+    }
+}
+
+impl Drop for R9Control {
+    fn drop(&mut self) {
+        std::mem::drop(&self.jlcontext.julia);
+        std::mem::drop(&self.jlcontext.handle);
     }
 }
 

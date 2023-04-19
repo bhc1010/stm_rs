@@ -1,14 +1,18 @@
-using Sockets
+module Test
 
-ip = ip"169.254.11.17"
-port = 50000
+    using Sockets
 
-socket = Sockets.connect(ip, port)
+    function read_lockin()
+        ip = ip"169.254.11.17"
+        port = 50000
 
-println(socket, "X.")
-x = readavailable(socket)
-val = Char.(x)
+        socket = Sockets.connect(ip, port)
 
-println(val)
+        println(socket, "X.")
+        x = readavailable(socket)
+        val = Char.(x)
+        Sockets.close(socket)
 
-Sockets.close(socket)
+        val
+    end
+end
