@@ -6,13 +6,13 @@ use iced::keyboard;
 use iced_native::subscription;
 use iced_native::Event;
 
-use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, pick_list, row, scrollable, text,
-    text_input, vertical_rule, vertical_space, Button, PickList, Text, TextInput,
-};
 use iced::{
-    executor, theme, Alignment, Application, Command, Element, Length, Renderer, Settings,
-    Subscription, Theme,
+    executor, theme,
+    widget::{
+        button, column, container, horizontal_rule, horizontal_space, pick_list, row, scrollable,
+        text, text_input, vertical_rule, vertical_space, Button, PickList, Text, TextInput,
+    },
+    Alignment, Application, Command, Element, Length, Renderer, Settings, Subscription, Theme,
 };
 use iced_graphics::widget::canvas::Canvas;
 
