@@ -8,14 +8,13 @@ pub mod value;
 pub mod cursor;
 
 use cursor::Cursor;
-use editor::Editor;
 use value::Value;
 
 use iced_native::alignment;
 use iced_native::event::{self, Event};
 use iced_native::keyboard;
 use iced_native::layout;
-use iced_native::mouse::{self, click};
+use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::text::{self, Text};
 use iced_native::time::{Duration, Instant};
@@ -25,11 +24,11 @@ use iced_native::widget::operation::{self, Operation};
 use iced_native::widget::tree::{self, Tree};
 use iced_native::window;
 use iced_native::{
-    Clipboard, Color, Command, Element, Layout, Length, Padding, Pixels, Point, Rectangle, Shell,
+    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle, Shell,
     Size, Vector, Widget,
 };
 
-use crate::style::scientific_text_input::{Appearance, StyleSheet};
+use crate::style::scientific_text_input::StyleSheet;
 
 /// A field that can be filled with text.
 ///
@@ -276,23 +275,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
+        _: &Renderer,
+        _: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(
             event,
             layout,
             cursor_position,
-            renderer,
-            clipboard,
             shell,
             &mut self.value,
-            self.size,
-            &self.font,
-            self.is_secure,
             self.on_input.as_deref(),
-            self.on_paste.as_deref(),
             &self.on_submit,
             || tree.state.downcast_mut::<State>(),
         )
@@ -399,34 +392,6 @@ impl From<Id> for widget::Id {
     }
 }
 
-/// Produces a [`Command`] that focuses the [`ScientificTextInput`] with the given [`Id`].
-pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::focusable::focus(id.0))
-}
-
-/// Produces a [`Command`] that moves the cursor of the [`ScientificTextInput`] with the given [`Id`] to the
-/// end.
-pub fn move_cursor_to_end<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_end(id.0))
-}
-
-/// Produces a [`Command`] that moves the cursor of the [`ScientificTextInput`] with the given [`Id`] to the
-/// front.
-pub fn move_cursor_to_front<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_front(id.0))
-}
-
-/// Produces a [`Command`] that moves the cursor of the [`ScientificTextInput`] with the given [`Id`] to the
-/// provided position.
-pub fn move_cursor_to<Message: 'static>(id: Id, position: usize) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to(id.0, position))
-}
-
-/// Produces a [`Command`] that selects all the content of the [`ScientificTextInput`] with the given [`Id`].
-pub fn select_all<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::select_all(id.0))
-}
-
 /// Computes the layout of a [`ScientificTextInput`].
 pub fn layout<Renderer>(
     renderer: &Renderer,
@@ -488,25 +453,25 @@ where
 
 /// Processes an [`Event`] and updates the [`State`] of a [`ScientificTextInput`]
 /// accordingly.
-pub fn update<'a, Message, Renderer>(
+pub fn update<'a, Message>(
     event: Event,
     layout: Layout<'_>,
     cursor_position: Point,
-    renderer: &Renderer,
-    clipboard: &mut dyn Clipboard,
+    // renderer: &Renderer,
+    // clipboard: &mut dyn Clipboard,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
-    size: Option<f32>,
-    font: &Renderer::Font,
-    is_secure: bool,
+    // size: Option<f32>,
+    // font: &Renderer::Font,
+    // is_secure: bool,
     on_input: Option<&dyn Fn(String) -> Message>,
-    on_paste: Option<&dyn Fn(String) -> Message>,
+    // on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
 where
     Message: Clone,
-    Renderer: text::Renderer,
+    // Renderer: text::Renderer,
 {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -526,146 +491,13 @@ where
             } else {
                 None
             };
-
-            if is_clicked {
-                let text_layout = layout.children().next().unwrap();
-                let target = cursor_position.x - text_layout.bounds().x;
-
-                let click = mouse::Click::new(cursor_position, state.last_click);
-
-                match click.kind() {
-                    click::Kind::Single => {
-                        let position = if target > 0.0 {
-                            let value = if is_secure {
-                                value.secure()
-                            } else {
-                                value.clone()
-                            };
-
-                            find_cursor_position(
-                                renderer,
-                                text_layout.bounds(),
-                                font.clone(),
-                                size,
-                                &value,
-                                state,
-                                target,
-                            )
-                        } else {
-                            None
-                        }
-                        .unwrap_or(0);
-
-                        if state.keyboard_modifiers.shift() {
-                            state
-                                .cursor
-                                .select_range(state.cursor.start(value), position);
-                        } else {
-                            state.cursor.move_to(position);
-                        }
-                        state.is_dragging = true;
-                    }
-                    click::Kind::Double => {
-                        if is_secure {
-                            state.cursor.select_all(value);
-                        } else {
-                            let position = find_cursor_position(
-                                renderer,
-                                text_layout.bounds(),
-                                font.clone(),
-                                size,
-                                value,
-                                state,
-                                target,
-                            )
-                            .unwrap_or(0);
-
-                            state.cursor.select_range(
-                                value.previous_start_of_word(position),
-                                value.next_end_of_word(position),
-                            );
-                        }
-
-                        state.is_dragging = false;
-                    }
-                    click::Kind::Triple => {
-                        state.cursor.select_all(value);
-                        state.is_dragging = false;
-                    }
-                }
-
-                state.last_click = Some(click);
-
-                return event::Status::Captured;
-            }
-        }
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerLifted { .. })
-        | Event::Touch(touch::Event::FingerLost { .. }) => {
-            state().is_dragging = false;
-        }
-        Event::Mouse(mouse::Event::CursorMoved { position })
-        | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
-            let state = state();
-
-            if state.is_dragging {
-                let text_layout = layout.children().next().unwrap();
-                let target = position.x - text_layout.bounds().x;
-
-                let value = if is_secure {
-                    value.secure()
-                } else {
-                    value.clone()
-                };
-
-                let position = find_cursor_position(
-                    renderer,
-                    text_layout.bounds(),
-                    font.clone(),
-                    size,
-                    &value,
-                    state,
-                    target,
-                )
-                .unwrap_or(0);
-
-                state
-                    .cursor
-                    .select_range(state.cursor.start(&value), position);
-
-                return event::Status::Captured;
-            }
-        }
-        Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
-            let state = state();
-
-            if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else { return event::Status::Ignored };
-
-                if state.is_pasting.is_none()
-                    && !state.keyboard_modifiers.command()
-                    && !c.is_control()
-                {
-                    let mut editor = Editor::new(value, &mut state.cursor);
-
-                    editor.insert(c);
-
-                    let message = (on_input)(editor.contents());
-                    shell.publish(message);
-
-                    focus.updated_at = Instant::now();
-
-                    return event::Status::Captured;
-                }
-            }
         }
         Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else { return event::Status::Ignored };
+                let Some(_) = on_input else { return event::Status::Ignored };
 
-                let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
 
                 match key_code {
@@ -674,111 +506,8 @@ where
                             shell.publish(on_submit);
                         }
                     }
-                    keyboard::KeyCode::Backspace => {
-                        if platform::is_jump_modifier_pressed(modifiers)
-                            && state.cursor.selection(value).is_none()
-                        {
-                            if is_secure {
-                                let cursor_pos = state.cursor.end(value);
-                                state.cursor.select_range(0, cursor_pos);
-                            } else {
-                                state.cursor.select_left_by_words(value);
-                            }
-                        }
-
-                        let mut editor = Editor::new(value, &mut state.cursor);
-                        editor.backspace();
-
-                        let message = (on_input)(editor.contents());
-                        shell.publish(message);
-                    }
-                    keyboard::KeyCode::Delete => {
-                        if platform::is_jump_modifier_pressed(modifiers)
-                            && state.cursor.selection(value).is_none()
-                        {
-                            if is_secure {
-                                let cursor_pos = state.cursor.end(value);
-                                state.cursor.select_range(cursor_pos, value.len());
-                            } else {
-                                state.cursor.select_right_by_words(value);
-                            }
-                        }
-
-                        let mut editor = Editor::new(value, &mut state.cursor);
-                        editor.delete();
-
-                        let message = (on_input)(editor.contents());
-                        shell.publish(message);
-                    }
                     keyboard::KeyCode::Left => state.cursor.select_left(value),
                     keyboard::KeyCode::Right => state.cursor.select_right(value),
-                    keyboard::KeyCode::Home => {
-                        if modifiers.shift() {
-                            state.cursor.select_range(state.cursor.start(value), 0);
-                        } else {
-                            state.cursor.move_to(0);
-                        }
-                    }
-                    keyboard::KeyCode::End => {
-                        if modifiers.shift() {
-                            state
-                                .cursor
-                                .select_range(state.cursor.start(value), value.len());
-                        } else {
-                            state.cursor.move_to(value.len());
-                        }
-                    }
-                    keyboard::KeyCode::C if state.keyboard_modifiers.command() => {
-                        if let Some((start, end)) = state.cursor.selection(value) {
-                            clipboard.write(value.select(start, end).to_string());
-                        }
-                    }
-                    keyboard::KeyCode::X if state.keyboard_modifiers.command() => {
-                        if let Some((start, end)) = state.cursor.selection(value) {
-                            clipboard.write(value.select(start, end).to_string());
-                        }
-
-                        let mut editor = Editor::new(value, &mut state.cursor);
-                        editor.delete();
-
-                        let message = (on_input)(editor.contents());
-                        shell.publish(message);
-                    }
-                    keyboard::KeyCode::V => {
-                        if state.keyboard_modifiers.command() {
-                            let content = match state.is_pasting.take() {
-                                Some(content) => content,
-                                None => {
-                                    let content: String = clipboard
-                                        .read()
-                                        .unwrap_or_default()
-                                        .chars()
-                                        .filter(|c| !c.is_control())
-                                        .collect();
-
-                                    Value::new(&content)
-                                }
-                            };
-
-                            let mut editor = Editor::new(value, &mut state.cursor);
-
-                            editor.paste(content.clone());
-
-                            let message = if let Some(paste) = &on_paste {
-                                (paste)(editor.contents())
-                            } else {
-                                (on_input)(editor.contents())
-                            };
-                            shell.publish(message);
-
-                            state.is_pasting = Some(content);
-                        } else {
-                            state.is_pasting = None;
-                        }
-                    }
-                    keyboard::KeyCode::A if state.keyboard_modifiers.command() => {
-                        state.cursor.select_all(value);
-                    }
                     keyboard::KeyCode::Escape => {
                         state.is_focused = None;
                         state.is_dragging = false;
@@ -795,30 +524,6 @@ where
 
                 return event::Status::Captured;
             }
-        }
-        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
-            let state = state();
-
-            if state.is_focused.is_some() {
-                match key_code {
-                    keyboard::KeyCode::V => {
-                        state.is_pasting = None;
-                    }
-                    keyboard::KeyCode::Tab | keyboard::KeyCode::Up | keyboard::KeyCode::Down => {
-                        return event::Status::Ignored;
-                    }
-                    _ => {}
-                }
-
-                return event::Status::Captured;
-            } else {
-                state.is_pasting = None;
-            }
-        }
-        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-            let state = state();
-
-            state.keyboard_modifiers = modifiers;
         }
         Event::Window(window::Event::RedrawRequested(now)) => {
             let state = state();
@@ -1079,18 +784,6 @@ impl State {
         Self::default()
     }
 
-    /// Creates a new [`State`], representing a focused [`ScientificTextInput`].
-    pub fn focused() -> Self {
-        Self {
-            is_focused: None,
-            is_dragging: false,
-            is_pasting: None,
-            last_click: None,
-            cursor: Cursor::default(),
-            keyboard_modifiers: keyboard::Modifiers::default(),
-        }
-    }
-
     /// Returns whether the [`ScientificTextInput`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
         self.is_focused.is_some()
@@ -1117,8 +810,6 @@ impl State {
             updated_at: now,
             now,
         });
-
-        self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`ScientificTextInput`].
@@ -1126,25 +817,6 @@ impl State {
         self.is_focused = None;
     }
 
-    /// Moves the [`Cursor`] of the [`ScientificTextInput`] to the front of the input text.
-    pub fn move_cursor_to_front(&mut self) {
-        self.cursor.move_to(0);
-    }
-
-    /// Moves the [`Cursor`] of the [`ScientificTextInput`] to the end of the input text.
-    pub fn move_cursor_to_end(&mut self) {
-        self.cursor.move_to(usize::MAX);
-    }
-
-    /// Moves the [`Cursor`] of the [`ScientificTextInput`] to an arbitrary location.
-    pub fn move_cursor_to(&mut self, position: usize) {
-        self.cursor.move_to(position);
-    }
-
-    /// Selects all the content of the [`ScientificTextInput`].
-    pub fn select_all(&mut self) {
-        self.cursor.select_range(0, usize::MAX);
-    }
 }
 
 impl operation::Focusable for State {
@@ -1158,70 +830,6 @@ impl operation::Focusable for State {
 
     fn unfocus(&mut self) {
         State::unfocus(self)
-    }
-}
-
-// impl operation::ScientificTextInput for State {
-//     fn move_cursor_to_front(&mut self) {
-//         State::move_cursor_to_front(self)
-//     }
-
-//     fn move_cursor_to_end(&mut self) {
-//         State::move_cursor_to_end(self)
-//     }
-
-//     fn move_cursor_to(&mut self, position: usize) {
-//         State::move_cursor_to(self, position)
-//     }
-
-//     fn select_all(&mut self) {
-//         State::select_all(self)
-//     }
-// }
-
-mod platform {
-    use iced_native::keyboard;
-
-    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.alt()
-        } else {
-            modifiers.control()
-        }
-    }
-}
-
-fn offset<Renderer>(
-    renderer: &Renderer,
-    text_bounds: Rectangle,
-    font: Renderer::Font,
-    size: f32,
-    value: &Value,
-    state: &State,
-) -> f32
-where
-    Renderer: text::Renderer,
-{
-    if state.is_focused() {
-        let cursor = state.cursor();
-
-        let focus_position = match cursor.state(value) {
-            cursor::State::Index(i) => i,
-            cursor::State::Selection { end, .. } => end,
-        };
-
-        let (_, offset) = measure_cursor_and_scroll_offset(
-            renderer,
-            text_bounds,
-            value,
-            size,
-            focus_position,
-            font,
-        );
-
-        offset
-    } else {
-        0.0
     }
 }
 
@@ -1243,36 +851,6 @@ where
     let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
 
     (text_value_width, offset)
-}
-
-/// Computes the position of the text cursor at the given X coordinate of
-/// a [`ScientificTextInput`].
-fn find_cursor_position<Renderer>(
-    renderer: &Renderer,
-    text_bounds: Rectangle,
-    font: Renderer::Font,
-    size: Option<f32>,
-    value: &Value,
-    state: &State,
-    x: f32,
-) -> Option<usize>
-where
-    Renderer: text::Renderer,
-{
-    let size = size.unwrap_or_else(|| renderer.default_size());
-
-    let offset = offset(renderer, text_bounds, font.clone(), size, value, state);
-
-    renderer
-        .hit_test(
-            &value.to_string(),
-            size,
-            font,
-            Size::INFINITY,
-            Point::new(x + offset, text_bounds.height / 2.0),
-            true,
-        )
-        .map(text::Hit::cursor)
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;
