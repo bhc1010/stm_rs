@@ -1,5 +1,3 @@
-// use iced::{widget::text_input::move_cursor_to, Command};
-use num_traits::clamp;
 
 use crate::native::scientific_text_input::{cursor, value::Value, ScientificTextInput, State};
 
@@ -17,6 +15,7 @@ use iced_native::{
 };
 
 use std::str::FromStr;
+use num_traits::clamp;
 
 use crate::style::scientificspinbox;
 
