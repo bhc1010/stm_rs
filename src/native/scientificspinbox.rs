@@ -1,4 +1,3 @@
-
 use crate::native::scientific_text_input::{cursor, value::Value, ScientificTextInput, State};
 
 use iced_native::{
@@ -10,12 +9,12 @@ use iced_native::{
         tree::{self, Tree},
         Column, Container, Operation, Row, Text,
     },
-    Alignment, Clipboard, Element, Event, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle, Shell, Size,
+    Widget,
 };
 
-use std::str::FromStr;
 use num_traits::clamp;
+use std::str::FromStr;
 
 use crate::style::scientificspinbox;
 

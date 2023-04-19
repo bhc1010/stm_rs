@@ -1,4 +1,4 @@
-use crate::vector2::Vector2;
+use crate::core::vector2::Vector2;
 
 #[derive(Default, Debug)]
 pub struct STMImage {

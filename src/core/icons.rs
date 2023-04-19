@@ -4,7 +4,7 @@ use iced::{alignment, Font};
 // Fonts
 pub const ICONS: Font = Font::External {
     name: "Icons",
-    bytes: include_bytes!("../fonts/icons.ttf"),
+    bytes: include_bytes!("../../fonts/icons.ttf"),
 };
 
 fn icon(unicode: char, size: f32) -> Text<'static> {

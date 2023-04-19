@@ -23,8 +23,8 @@ use iced_native::widget::operation::{self, Operation};
 use iced_native::widget::tree::{self, Tree};
 use iced_native::window;
 use iced_native::{
-    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 use crate::style::scientific_text_input::StyleSheet;
@@ -815,7 +815,6 @@ impl State {
     pub fn unfocus(&mut self) {
         self.is_focused = None;
     }
-
 }
 
 impl operation::Focusable for State {

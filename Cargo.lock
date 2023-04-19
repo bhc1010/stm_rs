@@ -90,6 +90,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomic"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b88d82667eca772c4aa12f0f1348b3ae643424c8876448f3f7bd5787032e234c"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
+name = "atomic_refcell"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "857253367827bd9d0fd973f0ef15506a96e79e41b0ad7aa691203a4e3214f6c8"
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1223,6 +1238,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "jl-sys"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2b0f59d13996556baf3a7590a9c57c214d9a1adfc65694be1b8d7c1b9c528c2"
+dependencies = [
+ "atomic",
+ "cc",
+ "cfg-if",
+]
+
+[[package]]
+name = "jlrs"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87e8f6288a17ab23d047e1a23298b64fbc7f2eec5dcfeb836ce6efd939de48bf"
+dependencies = [
+ "atomic_refcell",
+ "cfg-if",
+ "jl-sys",
+ "smallvec",
+ "thiserror",
+]
+
+[[package]]
 name = "jni-sys"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2174,6 +2213,7 @@ dependencies = [
  "iced_native",
  "iced_style",
  "itertools-num",
+ "jlrs",
  "num-traits",
  "unicode-segmentation",
 ]

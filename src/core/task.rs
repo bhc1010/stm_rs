@@ -1,7 +1,7 @@
 use iced::widget::{horizontal_space, row, text};
 use iced::{Element, Length};
 
-use crate::icons::*;
+use crate::core::icons::*;
 use crate::native::taskdisplay::TaskDisplay;
 use crate::style::taskdisplay::TaskDisplayStyles;
 

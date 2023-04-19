@@ -58,8 +58,6 @@ impl Cursor {
         }
     }
 
-
-
     pub(crate) fn select_range(&mut self, start: usize, end: usize) {
         if start == end {
             self.state = State::Index(start);

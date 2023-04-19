@@ -1,36 +1,33 @@
-mod icons;
+mod core;
 mod native;
-mod stmimage;
 mod style;
-mod task;
-mod vector2;
-
-use iced_native::Widget;
-use itertools_num::linspace;
 
 use iced::keyboard;
 use iced_native::subscription;
 use iced_native::Event;
-use stmimage::STMImage;
-
-use std::cmp::min;
 
 use iced::widget::{
     button, column, container, horizontal_rule, horizontal_space, pick_list, row, scrollable, text,
     text_input, vertical_rule, vertical_space, Button, PickList, Text, TextInput,
 };
-use iced::{executor, theme};
 use iced::{
-    Alignment, Application, Command, Element, Length, Renderer, Settings, Subscription, Theme,
+    executor, theme, Alignment, Application, Command, Element, Length, Renderer, Settings,
+    Subscription, Theme,
 };
 use iced_graphics::widget::canvas::Canvas;
 
-use icons::*;
-use native::scientificspinbox::{Bounds, ExponentialNumber, ScientificSpinBox};
+use crate::core::{
+    icons::*,
+    stmimage::STMImage,
+    task::{Task, TaskList, TaskMessage, TaskState},
+    vector2::Vector2,
+};
 use native::image_plot::Plot;
+use native::scientificspinbox::{Bounds, ExponentialNumber, ScientificSpinBox};
 use style::toolbartheme::ToolBarTheme;
-use task::{Task, TaskList, TaskMessage, TaskState};
-use vector2::Vector2;
+
+use itertools_num::linspace;
+use std::cmp::min;
 
 fn main() -> iced::Result {
     // std::env::set_var("RUST_BACKTRACE", "1");
@@ -503,13 +500,11 @@ impl Application for R9Control {
                 container(scan_area).max_width(1000),
                 container(
                     column![
-                        scrollable(
-                            column![
-                                scan_area_params,
-                                horizontal_rule(20),
-                                voltage_params
-                            ]
-                        ),
+                        scrollable(column![
+                            scan_area_params,
+                            horizontal_rule(20),
+                            voltage_params
+                        ]),
                         vertical_space(Length::Fill),
                         name,
                         vertical_space(10),

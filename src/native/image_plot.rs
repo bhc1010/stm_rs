@@ -4,14 +4,14 @@ use iced_graphics::widget::canvas::{Cache, Cursor, Frame, Geometry, Path, Progra
 pub struct Plot<'a, Message> {
     cache: Option<Cache>,
     // TODO: make use of Message?
-    on_change: Option<Box<dyn Fn(String) -> Message + 'a>>
+    on_change: Option<Box<dyn Fn(String) -> Message + 'a>>,
 }
 
 impl<'a, Message> Plot<'a, Message> {
     pub fn new() -> Self {
         Self {
             cache: None,
-            on_change: None
+            on_change: None,
         }
     }
 }
