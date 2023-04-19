@@ -1,8 +1,8 @@
-use iced::{Font, alignment};
 use iced::widget::{text, Text};
+use iced::{alignment, Font};
 
 // Fonts
-const ICONS: Font = Font::External {
+pub const ICONS: Font = Font::External {
     name: "Icons",
     bytes: include_bytes!("../fonts/icons.ttf"),
 };

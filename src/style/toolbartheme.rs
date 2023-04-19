@@ -1,5 +1,5 @@
-use iced::{Theme, Color, color};
-use iced::widget::{container, button};
+use iced::widget::{button, container};
+use iced::{color, Color, Theme};
 use iced_core::Vector;
 
 pub struct ToolBarTheme;
@@ -48,5 +48,4 @@ impl button::StyleSheet for ToolBarTheme {
             ..self.active(style)
         }
     }
-
 }

@@ -1,5 +1,7 @@
 {
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml",
-    ]
+    ],
+    "editor.fontFamily": "Fira Code",
+    "editor.fontLigatures": true
 }

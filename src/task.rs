@@ -1,27 +1,27 @@
 use iced::widget::{horizontal_space, row, text};
 use iced::{Element, Length};
 
+use crate::icons::*;
 use crate::native::taskdisplay::TaskDisplay;
 use crate::style::taskdisplay::TaskDisplayStyles;
-use crate::icons::*;
 
-
-pub struct TaskList {
-    pub tasks: Vec<Task>,
-    pub current_task: Option<usize>
+pub struct TaskList<T> {
+    pub tasks: Vec<Task<T>>,
+    pub current_task: Option<usize>,
 }
 
-impl Default for TaskList {
+impl<T> Default for TaskList<T> {
     fn default() -> Self {
-        Self { 
-            tasks: Vec::default(), 
-            current_task: None 
+        Self {
+            tasks: Vec::default(),
+            current_task: None,
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Task {
+pub struct Task<T> {
+    content: Vec<T>,
     description: String,
     index: usize,
     state: TaskState,
@@ -32,12 +32,12 @@ pub enum TaskState {
     Idle,
     Running,
     Completed,
-    Failed,
+    Failed(String),
 }
 
 #[derive(Debug, Clone)]
 pub enum TaskMessage {
-    Completed,
+    Finished,
     Edit,
     Delete,
 }
@@ -48,9 +48,10 @@ impl Default for TaskState {
     }
 }
 
-impl Task {
-    pub fn new(description: String, index: usize) -> Self {
+impl<T> Task<T> {
+    pub fn new(content: Vec<T>, description: String, index: usize) -> Self {
         Self {
+            content,
             description,
             index,
             state: TaskState::Idle,
@@ -59,7 +60,7 @@ impl Task {
 
     pub fn update(&mut self, msg: TaskMessage) {
         match msg {
-            TaskMessage::Completed => {
+            TaskMessage::Finished => {
                 self.state = TaskState::Completed;
             }
             _ => {}
@@ -67,14 +68,15 @@ impl Task {
     }
 
     pub fn view(&self) -> Element<TaskMessage> {
-        match self.state {
+        match &self.state {
             TaskState::Idle => TaskDisplay::new(row![
                 circle_icon(),
                 horizontal_space(Length::Fill),
-                text(self.description.clone()).size(20),
+                text(&self.description).size(20),
                 horizontal_space(Length::Fill),
                 three_dots_vertical_icon(),
             ])
+            .value(0.0)
             .into(),
             TaskState::Running => TaskDisplay::new(row![
                 running_icon(),
@@ -83,6 +85,7 @@ impl Task {
                 horizontal_space(Length::Fill),
                 three_dots_vertical_icon(),
             ])
+            .value(50.0)
             .style(TaskDisplayStyles::Running)
             .into(),
             TaskState::Completed => TaskDisplay::new(row![
@@ -94,15 +97,16 @@ impl Task {
             ])
             .style(TaskDisplayStyles::Completed)
             .into(),
-            TaskState::Failed => TaskDisplay::new(row![
+            TaskState::Failed(error) => TaskDisplay::new(row![
                 failed_icon(),
                 horizontal_space(Length::Fill),
                 text(self.description.clone()).size(20),
                 horizontal_space(Length::Fill),
                 three_dots_vertical_icon(),
             ])
+            .value(66.0)
             .style(TaskDisplayStyles::Failed)
-            .into()
+            .into(),
         }
     }
 
@@ -115,5 +119,9 @@ impl Task {
             TaskState::Idle => true,
             _ => false,
         }
+    }
+
+    pub fn content(&self) -> &Vec<T> {
+        &self.content
     }
 }

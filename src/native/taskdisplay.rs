@@ -1,5 +1,4 @@
 //! Provide progress feedback to your users.
-use iced::{color, Background};
 use iced_native::layout::{self, Layout};
 use iced_native::renderer;
 use iced_native::widget::{tree::Tree, Widget};
@@ -47,6 +46,11 @@ where
     /// Sets the style of the [`ProgressBar`].
     pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    pub fn value(mut self, value: f32) -> Self {
+        self.value = value;
         self
     }
 }

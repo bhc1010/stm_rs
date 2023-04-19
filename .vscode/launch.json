@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'STMController'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=STMController",
+                    "--package=STMController"
+                ],
+                "filter": {
+                    "name": "STMController",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'STMController'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=STMController",
+                    "--package=STMController"
+                ],
+                "filter": {
+                    "name": "STMController",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
